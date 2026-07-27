@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Smart Medical Inventory{% endblock %}
+{% block page_title %}System Dashboard{% endblock %}
+
+{% block content %}
+<!-- Top Alert Banner for Expiry / Low Stock -->
+{% if low_stock_count > 0 or expired_count > 0 %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 text-white bg-gradient" style="background: linear-gradient(135deg, #d00000 0%, #dc3545 100%);">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div>
+                    <h5 class="fw-bold m-0"><i class="fa-solid fa-triangle-exclamation me-2"></i>Critical Inventory Alerts Detected</h5>
+                    <p class="m-0 small opacity-75">You have {{ low_stock_count }} items running low on stock and {{ expired_count }} expired medicines that require immediate attention.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('medicines') }}?filter=low_stock" class="btn btn-light btn-sm fw-bold text-danger">View Low Stock</a>
+                    <a href="{{ url_for('medicines') }}?filter=expired" class="btn btn-outline-light btn-sm fw-bold">View Expired</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-primary">
+            <div class="card-icon bg-light-primary">
+                <i class="fa-solid fa-pills"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Total Medicines</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ total_medicines }}</h3>
+        </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-success">
+            <div class="card-icon bg-light-success">
+                <i class="fa-solid fa-cubes"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Total Stock Qty</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ total_stock }}</h3>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-warning">
+            <div class="card-icon bg-light-warning">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Low Stock Items</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ low_stock_count }}</h3>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-danger">
+            <div class="card-icon bg-light-danger">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Expired Batches</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ expired_count }}</h3>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-warning" style="--accent-color: var(--orange);">
+            <div class="card-icon" style="background-color: rgba(253,126,20,0.1); color: var(--orange);">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Expiring in 30d</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ expiring_soon_count }}</h3>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="dashboard-card card-info">
+            <div class="card-icon bg-light-info">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+            <h6 class="text-muted small fw-semibold">Total Suppliers</h6>
+            <h3 class="fw-bold m-0 text-dark">{{ total_suppliers }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Section -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Stock levels by category -->
+    <div class="col-lg-6">
+        <div class="table-card h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Stock Levels by Drug Category</h5>
+            <div style="height: 300px; position: relative;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chart 2: Transaction patterns -->
+    <div class="col-lg-6">
+        <div class="table-card h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-arrows-up-down me-2"></i>Stock Movement History (Last 30 Days)</h5>
+            <div style="height: 300px; position: relative;">
+                <canvas id="movementChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI forecasting & suggestions -->
+<div class="row g-4 mb-4">
+    <!-- AI Stock Forecast Plot -->
+    <div class="col-lg-7">
+        <div class="table-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-primary m-0">
+                    <i class="fa-solid fa-brain text-accent me-2"></i>AI Stock Forecast Trends
+                </h5>
+                <select class="form-select form-select-sm w-auto" id="forecastSelector" onchange="updateForecastPlot(this.value)">
+                    {% for item in list_medicines_with_history %}
+                    <option value="{{ item.id }}">{{ item.medicine_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="text-center p-3" id="forecastContainer" style="background-color: var(--light-bg); border-radius: var(--border-radius); min-height: 280px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <!-- Chart will load here dynamically via Javascript -->
+                <img id="forecastPlotImg" src="" alt="Linear Regression Trend" class="img-fluid rounded shadow-sm mb-3 d-none" style="max-height: 260px;">
+                <div id="forecastDetails" class="text-start w-100 px-3 d-none">
+                    <span class="badge" id="forecastStatusBadge">Stable</span>
+                    <span class="ms-3 text-muted small">Forecasted remaining: <strong id="forecastDaysVal">--</strong> days (Daily depletion rate: <strong id="forecastSlopeVal">0</strong> units)</span>
+                </div>
+                <div id="forecastPlaceholder" class="text-center text-muted">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-primary"></i>
+                    <p class="m-0">Loading forecasting trends...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Restock suggestions -->
+    <div class="col-lg-5">
+        <div class="table-card h-100">
+            <h5 class="fw-bold text-primary mb-3">
+                <i class="fa-solid fa-wand-magic-sparkles text-accent me-2"></i>Automated AI Restock Suggestions
+            </h5>
+            <div class="suggestions-list overflow-auto" style="max-height: 310px;">
+                {% if suggestions %}
+                    {% for sugg in suggestions %}
+                    <div class="p-3 mb-3 border rounded-3" style="background-color: rgba(0, 180, 216, 0.03); border-left: 4px solid var(--accent-color) !important;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold text-dark m-0">{{ sugg.medicine_name }}</h6>
+                            <span class="badge rounded-pill bg-light text-primary border border-primary">{{ sugg.demand_class }}</span>
+                        </div>
+                        <div class="small mb-2">
+                            <span class="text-muted">Current Stock:</span> <strong class="text-danger">{{ sugg.current_stock }}</strong>
+                            {% if sugg.days_remaining %}
+                            <span class="mx-2">|</span> <span class="text-muted">Depleting in:</span> <strong>{{ sugg.days_remaining }} days</strong>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted mb-2 small italic"><i class="fa-solid fa-circle-exclamation text-warning me-1"></i>{{ sugg.reason }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Supplier: <strong>{{ sugg.supplier_name }}</strong></span>
+                            <span class="badge bg-success">Order +{{ sugg.suggested_quantity }} Qty</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-solid fa-circle-check fa-3x text-success mb-3"></i>
+                        <p class="m-0 fw-semibold">Inventory is fully optimal.</p>
+                        <small>No restock suggestions needed at this time.</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent activity log table -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="table-card">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i>Recent System Audit Activity</h5>
+            <div class="table-responsive">
+                <table class="table text-nowrap m-0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Action Triggered</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_logs %}
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td><i class="fa-regular fa-clock text-muted me-1"></i>{{ log.timestamp }}</td>
+                                <td><strong>{{ log.fullname }}</strong></td>
+                                <td><span class="badge bg-light text-dark">{{ log.role }}</span></td>
+                                <td>{{ log.action }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">No activity logs recorded.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Load Category Chart
+    const catCtx = document.getElementById('categoryChart').getContext('2d');
+    const categories = {{ categories_labels | tojson }};
+    const categoryStocks = {{ categories_data | tojson }};
+    
+    new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categories,
+            datasets: [{
+                data: categoryStocks,
+                backgroundColor: [
+                    '#0b2545',
+                    '#134074',
+                    '#00b4d8',
+                    '#198754',
+                    '#fd7e14',
+                    '#6c757d'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15,
+                        font: { family: 'Outfit', size: 11 }
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+
+    // 2. Load Stock Movement Chart
+    const movCtx = document.getElementById('movementChart').getContext('2d');
+    const dates = {{ movements_dates | tojson }};
+    const stockIn = {{ movements_in | tojson }};
+    const stockOut = {{ movements_out | tojson }};
+    
+    new Chart(movCtx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Stock In (Restocked)',
+                    data: stockIn,
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Stock Out (Dispensed)',
+                    data: stockOut,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { family: 'Outfit', size: 11 } }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { font: { family: 'Outfit', size: 10 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Outfit', size: 10 } }
+                }
+            }
+        }
+    });
+
+    // 3. Initialize first forecast plot
+    const selector = document.getElementById('forecastSelector');
+    if (selector && selector.value) {
+        updateForecastPlot(selector.value);
+    } else {
+        document.getElementById('forecastPlaceholder').innerHTML = '<p class="m-0 text-muted">No medicines available to forecast.</p>';
+    }
+});
+
+// 4. Update Forecast Plot via AJAX/API
+function updateForecastPlot(medicineId) {
+    const placeholder = document.getElementById('forecastPlaceholder');
+    const img = document.getElementById('forecastPlotImg');
+    const details = document.getElementById('forecastDetails');
+    
+    placeholder.classList.remove('d-none');
+    img.classList.add('d-none');
+    details.classList.add('d-none');
+    
+    fetch(`/api/forecast/${medicineId}`)
+        .then(response => response.json())
+        .then(data => {
+            placeholder.classList.add('d-none');
+            
+            if (data.plot_url) {
+                // To avoid browser caching, append a timestamp
+                img.src = data.plot_url + '?t=' + new Date().getTime();
+                img.classList.remove('d-none');
+                
+                // Details
+                const daysVal = document.getElementById('forecastDaysVal');
+                const slopeVal = document.getElementById('forecastSlopeVal');
+                const badge = document.getElementById('forecastStatusBadge');
+                
+                daysVal.innerText = data.days_remaining !== null ? data.days_remaining : 'N/A (Stable)';
+                slopeVal.innerText = Math.abs(data.slope);
+                
+                // Status Badge styling
+                badge.innerText = data.status;
+                badge.className = 'badge';
+                if (data.status === 'Urgent Restock') {
+                    badge.classList.add('bg-danger');
+                } else if (data.status === 'Depleting') {
+                    badge.classList.add('bg-warning', 'text-dark');
+                } else if (data.status === 'Gradual Depletion') {
+                    badge.classList.add('bg-info', 'text-dark');
+                } else if (data.status === 'Stable') {
+                    badge.classList.add('bg-success');
+                } else {
+                    badge.classList.add('bg-secondary');
+                }
+                
+                details.classList.remove('d-none');
+            } else {
+                placeholder.classList.remove('d-none');
+                placeholder.innerHTML = `<i class="fa-solid fa-circle-exclamation fa-2x mb-2 text-warning"></i><p class="m-0">${data.status || 'Insufficient history to fit linear model.'}</p>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            placeholder.classList.remove('d-none');
+            placeholder.innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-2x text-danger mb-2"></i><p class="m-0">Could not retrieve forecasting details.</p>';
+        });
+}
+</script>
+{% endblock %}

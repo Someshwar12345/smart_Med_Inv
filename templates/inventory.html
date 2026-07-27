@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Logs - Smart Medical Inventory{% endblock %}
+{% block page_title %}Inventory & Stock Movement{% endblock %}
+
+{% block content %}
+<div class="row g-4 animate-fade-in">
+    <!-- Stock In / Out Operations Panel -->
+    <div class="col-lg-4 no-print">
+        <div class="table-card h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calculator text-accent me-2"></i>Stock Adjustment Panel</h5>
+            <p class="text-muted small">Record bulk supplies incoming or pharmacy dispensing transactions here.</p>
+            
+            <form action="{{ url_for('adjust_stock') }}" method="POST" id="adjustmentForm">
+                <!-- Select Medicine -->
+                <div class="mb-3">
+                    <label for="medicine_id" class="form-label fw-semibold small text-secondary">Select Medicine *</label>
+                    <select class="form-select" id="medicine_id" name="medicine_id" required>
+                        <option value="" disabled selected>Choose Drug...</option>
+                        {% for med in medicines %}
+                        <option value="{{ med.id }}" data-qty="{{ med.quantity }}">{{ med.medicine_name }} (Current: {{ med.quantity }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Transaction Type -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small text-secondary d-block">Transaction Type *</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="trans_type" id="typeIn" value="in" checked autocomplete="off">
+                        <label class="btn btn-outline-success py-2 fw-semibold" for="typeIn"><i class="fa-solid fa-circle-arrow-down me-1"></i>Stock In</label>
+
+                        <input type="radio" class="btn-check" name="trans_type" id="typeOut" value="out" autocomplete="off">
+                        <label class="btn btn-outline-danger py-2 fw-semibold" for="typeOut"><i class="fa-solid fa-circle-arrow-up me-1"></i>Stock Out</label>
+                    </div>
+                </div>
+
+                <!-- Quantity -->
+                <div class="mb-4">
+                    <label for="qty_change" class="form-label fw-semibold small text-secondary">Quantity to Adjust *</label>
+                    <input type="number" min="1" class="form-control" id="qty_change" name="quantity" placeholder="Enter amount..." required>
+                    <div class="form-text text-danger small d-none" id="qtyWarning">
+                        <i class="fa-solid fa-circle-exclamation"></i> Cannot deduct more than available stock!
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg fs-6" id="submitBtn">
+                        <i class="fa-solid fa-circle-check me-2"></i>Record Transaction
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Stock Levels Status -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-boxes-stacked me-2"></i>Current Stock Levels</h5>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table text-nowrap m-0">
+                    <thead>
+                        <tr>
+                            <th>Medicine</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Alert Level</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if medicines %}
+                            {% for med in medicines %}
+                            <tr class="align-middle">
+                                <td>
+                                    <div class="fw-bold text-dark">{{ med.medicine_name }}</div>
+                                    <small class="text-muted fw-mono">Batch: {{ med.batch_no }}</small>
+                                </td>
+                                <td><span class="badge bg-light-primary text-primary">{{ med.category }}</span></td>
+                                <td><strong class="text-dark">{{ med.quantity }}</strong></td>
+                                <td>
+                                    {% if med.quantity <= 0 %}
+                                        <span class="badge bg-light-danger text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>Out of Stock</span>
+                                    {% elif med.quantity <= 15 %}
+                                        <span class="badge bg-light-warning text-warning"><i class="fa-solid fa-triangle-exclamation me-1"></i>Low Stock</span>
+                                    {% else %}
+                                        <span class="badge bg-light-success text-success"><i class="fa-solid fa-circle-check me-1"></i>Optimal</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No drugs registered in database.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Movement Logs -->
+<div class="row mt-4 animate-fade-in">
+    <div class="col-12">
+        <div class="table-card">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i>Historical Stock Movements</h5>
+            <div class="table-responsive">
+                <table class="table text-nowrap m-0">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Medicine</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Qty Adjusted</th>
+                            <th>Remaining Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if logs %}
+                            {% for log in logs %}
+                            <tr class="align-middle">
+                                <td>{{ log.updated_at }}</td>
+                                <td><strong>{{ log.medicine_name }}</strong></td>
+                                <td><span class="badge bg-light-primary text-primary">{{ log.category }}</span></td>
+                                <td>
+                                    {% if log.stock_in > 0 %}
+                                        <span class="badge bg-light-success text-success"><i class="fa-solid fa-circle-arrow-down me-1"></i>Stock In</span>
+                                    {% else %}
+                                        <span class="badge bg-light-danger text-danger"><i class="fa-solid fa-circle-arrow-up me-1"></i>Stock Out</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ log.stock_in if log.stock_in > 0 else log.stock_out }}</strong>
+                                </td>
+                                <td><strong>{{ log.current_stock }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No transactions recorded.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const medSelect = document.getElementById('medicine_id');
+    const typeIn = document.getElementById('typeIn');
+    const typeOut = document.getElementById('typeOut');
+    const qtyInput = document.getElementById('qty_change');
+    const warning = document.getElementById('qtyWarning');
+    const form = document.getElementById('adjustmentForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function validateQuantity() {
+        if (typeOut.checked && medSelect.value) {
+            const selectedOpt = medSelect.options[medSelect.selectedIndex];
+            const currentStock = parseInt(selectedOpt.getAttribute('data-qty'));
+            const adjustQty = parseInt(qtyInput.value);
+            
+            if (adjustQty > currentStock) {
+                warning.classList.remove('d-none');
+                submitBtn.disabled = true;
+            } else {
+                warning.classList.add('d-none');
+                submitBtn.disabled = false;
+            }
+        } else {
+            warning.classList.add('d-none');
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Attach listeners
+    medSelect.addEventListener('change', validateQuantity);
+    typeIn.addEventListener('change', validateQuantity);
+    typeOut.addEventListener('change', validateQuantity);
+    qtyInput.addEventListener('input', validateQuantity);
+});
+</script>
+{% endblock %}

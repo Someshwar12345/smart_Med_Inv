@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Smart Medical Inventory{% endblock %}
+
+{% block outer_content %}
+<div class="auth-wrapper">
+    <div class="auth-card shadow-lg">
+        <div class="auth-header">
+            <i class="fa-solid fa-hospital-user auth-logo"></i>
+            <h3 class="fw-bold text-primary mt-2">Smart Med Inv</h3>
+            <p class="text-muted">Sign In to access dashboard</p>
+        </div>
+        
+        <!-- Alerts Block for Outer Content -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else category }} alert-dismissible fade show border-0 small py-2 px-3 mb-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Tabbed Login Options -->
+        <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" id="loginTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active rounded-3 py-2 fw-semibold" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-login" type="button" role="tab">
+                    <i class="fa-solid fa-envelope me-1"></i> Email & Password
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 py-2 fw-semibold" id="phone-tab" data-bs-toggle="tab" data-bs-target="#phone-login" type="button" role="tab">
+                    <i class="fa-solid fa-phone me-1"></i> Mobile & OTP
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="loginTabContent">
+            <!-- Email & Password Form -->
+            <div class="tab-pane fade show active" id="email-login" role="tabpanel">
+                <form action="{{ url_for('login') }}" method="POST">
+                    <input type="hidden" name="login_type" value="email">
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold small text-secondary">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-envelope"></i></span>
+                            <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" placeholder="name@example.com" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <label for="password" class="form-label fw-semibold small text-secondary">Password</label>
+                            <a href="{{ url_for('forgot_password') }}" class="small text-decoration-none">Forgot Password?</a>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg fs-6"><i class="fa-solid fa-right-to-bracket me-2"></i>Sign In</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Mobile & OTP Form -->
+            <div class="tab-pane fade" id="phone-login" role="tabpanel">
+                <form action="{{ url_for('login_request_otp') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="mobile" class="form-label fw-semibold small text-secondary">Registered Mobile Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-phone"></i></span>
+                            <input type="tel" class="form-control border-start-0 ps-0" id="mobile" name="mobile" placeholder="e.g. +1234567890" required>
+                        </div>
+                        <div class="form-text small text-muted">Include country code (e.g., +1 for US, +91 for India)</div>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-accent btn-lg fs-6"><i class="fa-solid fa-paper-plane me-2"></i>Send Verification OTP</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <span class="text-muted small">Don't have an account? </span>
+            <a href="{{ url_for('register') }}" class="small text-decoration-none fw-bold">Register here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if medicine %}Edit Medicine{% else %}Add Medicine{% endif %} - Smart Medical Inventory{% endblock %}
+{% block page_title %}{% if medicine %}Edit Medicine Record{% else %}Add New Medicine{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate-fade-in">
+    <div class="col-lg-8">
+        <div class="table-card">
+            <h5 class="fw-bold text-primary mb-4">
+                <i class="fa-solid {% if medicine %}fa-pen-to-square{% else %}fa-plus-circle{% endif %} me-2"></i>
+                {% if medicine %}Update attributes for {{ medicine.medicine_name }}{% else %}Register a new medicine batch{% endif %}
+            </h5>
+
+            <form action="{% if medicine %}{{ url_for('edit_medicine', id=medicine.id) }}{% else %}{{ url_for('add_medicine') }}{% endif %}" method="POST">
+                <div class="row g-3">
+                    <!-- Medicine Name -->
+                    <div class="col-md-6">
+                        <label for="medicine_name" class="form-label fw-semibold small text-secondary">Medicine Name *</label>
+                        <input type="text" class="form-control" id="medicine_name" name="medicine_name" value="{{ medicine.medicine_name if medicine else '' }}" placeholder="e.g. Paracetamol 500mg" required>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="col-md-6">
+                        <label for="category" class="form-label fw-semibold small text-secondary">Category *</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="" disabled {% if not medicine %}selected{% endif %}>Select Category...</option>
+                            <option value="Analgesics" {% if medicine and medicine.category == 'Analgesics' %}selected{% endif %}>Analgesics (Pain Relievers)</option>
+                            <option value="Antibiotics" {% if medicine and medicine.category == 'Antibiotics' %}selected{% endif %}>Antibiotics</option>
+                            <option value="Antidiabetic" {% if medicine and medicine.category == 'Antidiabetic' %}selected{% endif %}>Antidiabetic</option>
+                            <option value="Cardiovascular" {% if medicine and medicine.category == 'Cardiovascular' %}selected{% endif %}>Cardiovascular</option>
+                            <option value="Supplements" {% if medicine and medicine.category == 'Supplements' %}selected{% endif %}>Supplements / Vitamins</option>
+                            <option value="Antivirals" {% if medicine and medicine.category == 'Antivirals' %}selected{% endif %}>Antivirals</option>
+                            <option value="Respiratory" {% if medicine and medicine.category == 'Respiratory' %}selected{% endif %}>Respiratory Medications</option>
+                            <option value="Others" {% if medicine and medicine.category == 'Others' %}selected{% endif %}>Others</option>
+                        </select>
+                    </div>
+
+                    <!-- Batch Number -->
+                    <div class="col-md-6">
+                        <label for="batch_no" class="form-label fw-semibold small text-secondary">Batch Number *</label>
+                        <input type="text" class="form-control" id="batch_no" name="batch_no" value="{{ medicine.batch_no if medicine else '' }}" placeholder="e.g. PM-9921" required {% if medicine %}readonly{% endif %}>
+                        {% if medicine %}
+                        <div class="form-text small text-muted">Batch numbers cannot be modified once created.</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Manufacturer -->
+                    <div class="col-md-6">
+                        <label for="manufacturer" class="form-label fw-semibold small text-secondary">Manufacturer</label>
+                        <input type="text" class="form-control" id="manufacturer" name="manufacturer" value="{{ medicine.manufacturer if medicine else '' }}" placeholder="e.g. Pfizer, GSK">
+                    </div>
+
+                    <!-- Purchase Price -->
+                    <div class="col-md-4">
+                        <label for="purchase_price" class="form-label fw-semibold small text-secondary">Purchase Price ($) *</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" id="purchase_price" name="purchase_price" value="{{ medicine.purchase_price if medicine else '' }}" placeholder="0.00" required>
+                    </div>
+
+                    <!-- Selling Price -->
+                    <div class="col-md-4">
+                        <label for="selling_price" class="form-label fw-semibold small text-secondary">Selling Price ($) *</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" id="selling_price" name="selling_price" value="{{ medicine.selling_price if medicine else '' }}" placeholder="0.00" required>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="col-md-4">
+                        <label for="quantity" class="form-label fw-semibold small text-secondary">Initial Quantity *</label>
+                        <input type="number" min="0" class="form-control" id="quantity" name="quantity" value="{{ medicine.quantity if medicine else '' }}" placeholder="0" required {% if medicine %}readonly{% endif %}>
+                        {% if medicine %}
+                        <div class="form-text small text-muted">Use <strong>Inventory Logs</strong> to adjust stock.</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Expiry Date -->
+                    <div class="col-md-6">
+                        <label for="expiry_date" class="form-label fw-semibold small text-secondary">Expiry Date *</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="{{ medicine.expiry_date if medicine else '' }}" required>
+                    </div>
+
+                    <!-- Supplier -->
+                    <div class="col-md-6">
+                        <label for="supplier_id" class="form-label fw-semibold small text-secondary">Supplier Name *</label>
+                        <select class="form-select" id="supplier_id" name="supplier_id" required>
+                            <option value="" disabled {% if not medicine %}selected{% endif %}>Select Supplier...</option>
+                            {% for sup in suppliers %}
+                            <option value="{{ sup.id }}" {% if medicine and medicine.supplier_id == sup.id %}selected{% endif %}>{{ sup.supplier_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{{ url_for('medicines') }}" class="btn btn-light border"><i class="fa-solid fa-arrow-left"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save"></i> {% if medicine %}Save Changes{% else %}Add Medicine{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

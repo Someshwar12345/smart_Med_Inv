@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Account - Smart Medical Inventory{% endblock %}
+
+{% block outer_content %}
+<div class="auth-wrapper">
+    <div class="auth-card shadow-lg" style="max-width: 550px;">
+        <div class="auth-header">
+            <i class="fa-solid fa-hospital-user auth-logo"></i>
+            <h3 class="fw-bold text-primary mt-2">Create Account</h3>
+            <p class="text-muted">Register to manage inventory</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else category }} alert-dismissible fade show border-0 small py-2 px-3 mb-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('register') }}" method="POST" id="registerForm">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label for="fullname" class="form-label fw-semibold small text-secondary">Full Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0" id="fullname" name="fullname" placeholder="e.g. John Doe" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="email" class="form-label fw-semibold small text-secondary">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-envelope"></i></span>
+                        <input type="email" class="form-control border-start-0 ps-0" id="email" name="email" placeholder="name@example.com" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="mobile" class="form-label fw-semibold small text-secondary">Mobile Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-phone"></i></span>
+                        <input type="tel" class="form-control border-start-0 ps-0" id="mobile" name="mobile" placeholder="e.g. +1234567890" required>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <label for="role" class="form-label fw-semibold small text-secondary">System Role</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-id-card-clip"></i></span>
+                        <select class="form-select border-start-0 ps-0" id="role" name="role" required>
+                            <option value="" disabled selected>Select Role...</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Pharmacist">Pharmacist</option>
+                            <option value="Store Manager">Store Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="password" class="form-label fw-semibold small text-secondary">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="confirm_password" class="form-label fw-semibold small text-secondary">Confirm Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg fs-6"><i class="fa-solid fa-user-plus me-2"></i>Register & Verify Phone</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-4">
+            <span class="text-muted small">Already have an account? </span>
+            <a href="{{ url_for('login') }}" class="small text-decoration-none fw-bold">Sign In here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+    }
+});
+</script>
+{% endblock %}

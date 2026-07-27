@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Smart Medical Inventory{% endblock %}
+{% block page_title %}Account Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4 animate-fade-in">
+    <!-- Profile Details & Security -->
+    <div class="col-lg-5">
+        <!-- Profile Card -->
+        <div class="table-card mb-4">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-id-card text-accent me-2"></i>Account Details</h5>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="user-avatar" style="width: 60px; height: 60px; font-size: 1.75rem;">
+                    {{ user.fullname[0] | upper }}
+                </div>
+                <div>
+                    <h5 class="fw-bold text-dark m-0">{{ user.fullname }}</h5>
+                    <span class="badge bg-primary mt-1">{{ user.role }}</span>
+                </div>
+            </div>
+            
+            <table class="table table-sm text-dark m-0">
+                <tbody>
+                    <tr>
+                        <td class="text-muted border-0">Email Address:</td>
+                        <td class="fw-semibold border-0">{{ user.email }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted border-0">Mobile Number:</td>
+                        <td class="fw-semibold border-0">{{ user.mobile }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted border-0">Phone Verification:</td>
+                        <td class="border-0">
+                            {% if user.is_verified %}
+                            <span class="badge bg-light-success text-success"><i class="fa-solid fa-circle-check me-1"></i>Verified 2FA</span>
+                            {% else %}
+                            <span class="badge bg-light-danger text-danger"><i class="fa-solid fa-circle-xmark me-1"></i>Unverified</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted border-0">Registered Since:</td>
+                        <td class="fw-semibold border-0 small text-muted">{{ user.created_at }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Change Password Form -->
+        <div class="table-card">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-key-skeleton text-accent me-2"></i>Change Password</h5>
+            <form action="{{ url_for('change_password') }}" method="POST" id="passwordForm">
+                <div class="mb-3">
+                    <label for="old_password" class="form-label fw-semibold small text-secondary">Current Password *</label>
+                    <input type="password" class="form-control" id="old_password" name="old_password" placeholder="••••••••" required>
+                </div>
+                <div class="mb-3">
+                    <label for="new_password" class="form-label fw-semibold small text-secondary">New Password *</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password" placeholder="••••••••" required minlength="6">
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label fw-semibold small text-secondary">Confirm New Password *</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="••••••••" required minlength="6">
+                </div>
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-shield-halved me-1"></i>Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Personal Activity Logs -->
+    <div class="col-lg-7">
+        <div class="table-card h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fa-solid fa-timeline text-accent me-2"></i>My Activity Trail</h5>
+            <p class="text-muted small">A trace of operations performed under this user login session.</p>
+            <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                <table class="table text-nowrap m-0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action Performed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if user_logs %}
+                            {% for log in user_logs %}
+                            <tr>
+                                <td class="small text-muted"><i class="fa-regular fa-clock me-1"></i>{{ log.timestamp }}</td>
+                                <td class="text-dark small">{{ log.action }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted py-5">No activity recorded for your account.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('passwordForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('new_password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('New passwords do not match!');
+    }
+});
+</script>
+{% endblock %}

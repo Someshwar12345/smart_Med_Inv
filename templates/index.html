@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Smart Medical Inventory Management System{% endblock %}
+
+{% block outer_content %}
+<div class="auth-wrapper" style="flex-direction: column; background: linear-gradient(135deg, #0b2545 0%, #134074 50%, #00b4d8 100%);">
+    <div class="container text-white text-center py-5">
+        <div class="mb-4">
+            <i class="fa-solid fa-house-medical fa-4x mb-3 text-info" style="filter: drop-shadow(0 0 10px rgba(0, 180, 216, 0.4));"></i>
+            <h1 class="display-3 fw-bold tracking-tight">Smart Medical Inventory</h1>
+            <p class="lead text-light-50 fs-4">Next-Gen Inventory Control, Expiry Management, and AI Demand Forecasting</p>
+        </div>
+
+        <div class="row justify-content-center my-5">
+            <div class="col-md-8">
+                <div class="card bg-white text-dark shadow-lg border-0 rounded-4 p-4 text-start">
+                    <h3 class="mb-4 text-center fw-bold text-primary"><i class="fa-solid fa-wand-magic-sparkles text-accent me-2"></i>Key System Modules</h3>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="bg-light-info p-2 rounded-circle"><i class="fa-solid fa-lock text-info"></i></span>
+                                <div>
+                                    <h6 class="fw-bold m-0">2FA OTP Authentication</h6>
+                                    <small class="text-muted">Register, Login & Recover via phone SMS OTP verification codes.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="bg-light-success p-2 rounded-circle"><i class="fa-solid fa-brain text-success"></i></span>
+                                <div>
+                                    <h6 class="fw-bold m-0">AI Demand Prediction</h6>
+                                    <small class="text-muted">Scikit-Learn ML classification predicting High/Medium/Low drug demand.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="bg-light-primary p-2 rounded-circle"><i class="fa-solid fa-chart-line text-primary"></i></span>
+                                <div>
+                                    <h6 class="fw-bold m-0">Linear Stock Forecasting</h6>
+                                    <small class="text-muted">Linear Regression trends projecting remaining days of drug stock.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-start gap-3">
+                                <span class="bg-light-warning p-2 rounded-circle"><i class="fa-solid fa-calendar-times text-warning"></i></span>
+                                <div>
+                                    <h6 class="fw-bold m-0">Automatic Expiry Alerting</h6>
+                                    <small class="text-muted">Identifies expired products or batches expiring in 30 days automatically.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('login') }}" class="btn btn-accent btn-lg px-4 py-3 shadow-lg fs-5">
+                <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In to System
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-light btn-lg px-4 py-3 fs-5">
+                <i class="fa-solid fa-user-plus me-2"></i>Create Account
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

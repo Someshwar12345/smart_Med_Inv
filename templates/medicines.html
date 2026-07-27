@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}Medicines - Smart Medical Inventory{% endblock %}
+{% block page_title %}Medicine Database{% endblock %}
+
+{% block content %}
+<div class="row mb-4 no-print animate-fade-in">
+    <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h5 class="fw-semibold text-secondary m-0">Manage and Track Drug Items</h5>
+        </div>
+        <div>
+            {% if session.get('role') in ['Admin', 'Store Manager'] %}
+            <a href="{{ url_for('add_medicine') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle me-1"></i> Add New Medicine
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Panel -->
+<div class="table-card no-print mb-4 animate-fade-in">
+    <form method="GET" action="{{ url_for('medicines') }}">
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Search Keyword</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-0 bg-light" name="search" value="{{ search_query }}" placeholder="Search by name, batch, category, supplier...">
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Filter by Alert Category</label>
+                <select class="form-select bg-light" name="filter">
+                    <option value="">All Medicines</option>
+                    <option value="low_stock" {% if filter_query == 'low_stock' %}selected{% endif %}>Low Stock Items</option>
+                    <option value="expired" {% if filter_query == 'expired' %}selected{% endif %}>Expired Medicines</option>
+                    <option value="expiring_soon" {% if filter_query == 'expiring_soon' %}selected{% endif %}>Expiring within 30 Days</option>
+                    <option value="high_demand" {% if filter_query == 'high_demand' %}selected{% endif %}>High Demand Drugs (AI)</option>
+                </select>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small fw-semibold text-secondary">Sort Order</label>
+                <select class="form-select bg-light" name="sort">
+                    <option value="name_asc" {% if sort_query == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                    <option value="name_desc" {% if sort_query == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                    <option value="qty_low" {% if sort_query == 'qty_low' %}selected{% endif %}>Stock level (Low to High)</option>
+                    <option value="qty_high" {% if sort_query == 'qty_high' %}selected{% endif %}>Stock level (High to Low)</option>
+                    <option value="expiry_near" {% if sort_query == 'expiry_near' %}selected{% endif %}>Expiry date (Closest first)</option>
+                </select>
+            </div>
+
+            <div class="col-lg-2 col-md-6 d-flex align-items-end">
+                <button type="submit" class="btn btn-accent w-100"><i class="fa-solid fa-filter me-1"></i> Apply</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Medicines List Table -->
+<div class="table-card animate-fade-in">
+    <div class="table-responsive">
+        <table class="table text-nowrap m-0">
+            <thead>
+                <tr>
+                    <th>Batch</th>
+                    <th>Medicine Name</th>
+                    <th>Category</th>
+                    <th>Stock Qty</th>
+                    <th>Expiry Date</th>
+                    <th>Selling Price</th>
+                    <th>Supplier</th>
+                    <th class="text-end no-print">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if medicines %}
+                    {% for med in medicines %}
+                    <tr class="align-middle">
+                        <td><span class="badge bg-light text-dark fw-mono">{{ med.batch_no }}</span></td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ med.medicine_name }}</div>
+                            <small class="text-muted">{{ med.manufacturer }}</small>
+                        </td>
+                        <td><span class="badge bg-light-primary text-primary">{{ med.category }}</span></td>
+                        <td>
+                            {% if med.quantity <= 0 %}
+                                <span class="badge badge-out-stock"><i class="fa-solid fa-circle-xmark me-1"></i>Out of Stock</span>
+                            {% elif med.quantity <= 15 %}
+                                <span class="badge badge-low-stock"><i class="fa-solid fa-triangle-exclamation me-1"></i>Low ({{ med.quantity }})</span>
+                            {% else %}
+                                <span class="badge badge-in-stock">{{ med.quantity }} Units</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if med.is_expired %}
+                                <span class="badge bg-light-danger text-danger fw-semibold"><i class="fa-solid fa-circle-exclamation me-1"></i>Expired</span>
+                            {% elif med.is_expiring_soon %}
+                                <span class="badge bg-light-warning text-warning fw-semibold"><i class="fa-solid fa-hourglass-half me-1"></i>Expiring Soon</span>
+                            {% else %}
+                                <span class="text-dark small fw-semibold">{{ med.expiry_date }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>${{ "%.2f" | format(med.selling_price) }}</strong></td>
+                        <td>{{ med.supplier_name or 'N/A' }}</td>
+                        <td class="text-end no-print">
+                            <button type="button" class="btn btn-light btn-sm text-primary border me-1" onclick="showMedDetails({{ med.id }})">
+                                <i class="fa-solid fa-eye"></i> Details
+                            </button>
+                            
+                            {% if session.get('role') in ['Admin', 'Store Manager'] %}
+                            <a href="{{ url_for('edit_medicine', id=med.id) }}" class="btn btn-light btn-sm text-secondary border me-1">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
+                            </a>
+                            {% endif %}
+
+                            {% if session.get('role') == 'Admin' %}
+                            <a href="{{ url_for('delete_medicine', id=med.id) }}" class="btn btn-light btn-sm text-danger border" onclick="return confirm('Are you sure you want to delete this medicine and all its inventory logs?')">
+                                <i class="fa-solid fa-trash-can"></i> Delete
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="fa-solid fa-folder-open fa-3x mb-3 text-light-50"></i>
+                            <p class="m-0 fw-semibold">No medicines found</p>
+                            <small>Try refining your search keyword or filters.</small>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Medicine Details Modal -->
+<div class="modal fade" id="medDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary" id="modalMedTitle">Medicine details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="row g-4">
+                    <!-- Left Side Details -->
+                    <div class="col-md-6 border-end">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Item Specifications</h6>
+                        <table class="table table-sm text-dark m-0">
+                            <tbody>
+                                <tr>
+                                    <td class="text-muted border-0">Batch Number:</td>
+                                    <td class="fw-semibold border-0" id="modalBatch">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Category:</td>
+                                    <td class="fw-semibold border-0" id="modalCategory">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Manufacturer:</td>
+                                    <td class="fw-semibold border-0" id="modalManufacturer">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Current Quantity:</td>
+                                    <td class="fw-semibold border-0" id="modalQty">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Expiry Date:</td>
+                                    <td class="fw-semibold border-0" id="modalExpiry">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Purchase Price:</td>
+                                    <td class="fw-semibold border-0" id="modalPurchasePrice">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Selling Price:</td>
+                                    <td class="fw-semibold border-0" id="modalSellingPrice">--</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted border-0">Profit Margin:</td>
+                                    <td class="fw-semibold border-0 text-success" id="modalMargin">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Right Side Analytics -->
+                    <div class="col-md-6">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-3">AI Intelligent Insights</h6>
+                        
+                        <div class="mb-4 p-3 rounded bg-light border-start border-primary border-3">
+                            <h6 class="fw-bold mb-1"><i class="fa-solid fa-brain text-accent me-1"></i>Demand Status</h6>
+                            <span class="badge bg-primary" id="modalDemandPred">Calculating...</span>
+                            <p class="text-muted small mt-2 mb-0">Predicted using Decision Tree Classification based on sales velocity and prices.</p>
+                        </div>
+                        
+                        <div class="mb-3 p-3 rounded bg-light border-start border-warning border-3">
+                            <h6 class="fw-bold mb-1"><i class="fa-solid fa-chart-line text-warning me-1"></i>Stock Depletion Forecast</h6>
+                            <div class="small" id="modalForecastText">Analyzing history...</div>
+                            <p class="text-muted small mt-2 mb-0">Calculated via Scikit-Learn Linear Regression over inventory history logs.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 rounded bg-light-primary d-flex align-items-start gap-3">
+                    <span class="bg-white p-2 rounded-circle border text-primary"><i class="fa-solid fa-truck"></i></span>
+                    <div>
+                        <h6 class="fw-bold m-0 text-dark">Supplier Contacts</h6>
+                        <small class="text-muted" id="modalSupplierDetails">No supplier assigned</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let detailsModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    detailsModal = new bootstrap.Modal(document.getElementById('medDetailsModal'));
+});
+
+function showMedDetails(medId) {
+    fetch(`/api/medicine/${medId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            // Populate specifications
+            document.getElementById('modalMedTitle').innerText = data.medicine_name;
+            document.getElementById('modalBatch').innerText = data.batch_no;
+            document.getElementById('modalCategory').innerText = data.category;
+            document.getElementById('modalManufacturer').innerText = data.manufacturer || 'Unknown';
+            document.getElementById('modalQty').innerText = `${data.quantity} units`;
+            document.getElementById('modalExpiry').innerText = `${data.expiry_date} (${data.is_expired ? 'Expired' : data.is_expiring_soon ? 'Expiring Soon' : 'Active'})`;
+            document.getElementById('modalPurchasePrice').innerText = `$${data.purchase_price.toFixed(2)}`;
+            document.getElementById('modalSellingPrice').innerText = `$${data.selling_price.toFixed(2)}`;
+            
+            // Calculate margin
+            const margin = data.selling_price - data.purchase_price;
+            const marginPct = (margin / data.purchase_price) * 100;
+            document.getElementById('modalMargin').innerText = `$${margin.toFixed(2)} (+${marginPct.toFixed(0)}%)`;
+            
+            // AI predictions
+            document.getElementById('modalDemandPred').innerText = data.ai_demand;
+            
+            // Forecast logic
+            const forecastTextDiv = document.getElementById('modalForecastText');
+            if (data.ai_forecast.days_remaining !== null) {
+                if (data.ai_forecast.days_remaining === 999) {
+                    forecastTextDiv.innerHTML = `<span class="badge bg-success">Stable</span> Stock is stable (No downward depletion trend detected).`;
+                } else {
+                    const statusClass = data.ai_forecast.status === 'Urgent Restock' ? 'text-danger fw-bold' : 'text-warning fw-bold';
+                    forecastTextDiv.innerHTML = `Projected to hit 0 in <span class="${statusClass}">${data.ai_forecast.days_remaining} days</span>. (Depletion rate: ${Math.abs(data.ai_forecast.slope)} units/day).`;
+                }
+            } else {
+                forecastTextDiv.innerHTML = `<span class="text-muted"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>${data.ai_forecast.status}</span>`;
+            }
+            
+            // Supplier Contacts
+            const supDiv = document.getElementById('modalSupplierDetails');
+            if (data.supplier) {
+                supDiv.innerHTML = `<strong>${data.supplier.supplier_name}</strong><br>Contact: ${data.supplier.contact_person} | Phone: ${data.supplier.phone} | Email: ${data.supplier.email || 'N/A'}`;
+            } else {
+                supDiv.innerHTML = `<em>No supplier contacts assigned to this drug.</em>`;
+            }
+            
+            // Show modal
+            detailsModal.show();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Failed to load medicine details.");
+        });
+}
+</script>
+{% endblock %}
